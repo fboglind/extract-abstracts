@@ -20,6 +20,9 @@ Thumbs.db
 # Ignore these sub-directories
 dir_1/
 
+#pdfs
+*.pdf
+
 # Ignore temp files
 *.un~
 *.swp
