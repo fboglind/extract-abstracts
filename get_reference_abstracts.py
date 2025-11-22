@@ -85,53 +85,104 @@ def polite_get(session: requests.Session, url: str, params: dict = None, headers
 # ---------------------------
 
 def extract_references_text(pdf_path: Path) -> str:
-    """Grab text from the page that contains 'References' (case-insensitive) to the end."""
+    """Grab text starting just after the 'References' header, to the end of the document."""
     with fitz.open(pdf_path) as doc:
-        full_pages = []
-        start_idx = None
         for i in range(len(doc)):
             text = doc.load_page(i).get_text("text")
-            full_pages.append(text)
-            if start_idx is None and re.search(r"\bReferences\b", text, re.IGNORECASE):
-                start_idx = i
-        if start_idx is None:
-            # Try 'Bibliography' as a fallback
-            for i in range(len(doc)):
-                if re.search(r"\bBibliography\b", full_pages[i], re.IGNORECASE):
-                    start_idx = i
-                    break
-        if start_idx is None:
-            return ""  # could not find references section
-        return "\n".join(full_pages[start_idx:])
+            m = re.search(r"\bReferences\b", text, re.IGNORECASE)
+            if m:
+                # Start after the "References" heading
+                parts = [text[m.end():]]
+                for j in range(i + 1, len(doc)):
+                    parts.append(doc.load_page(j).get_text("text"))
+                return "\n".join(parts)
+    return ""
 
-def split_reference_entries(ref_text: str) -> List[str]:
+def split_reference_entries(ref_text: str) -> list[str]:
     """
-    Split references into entries. ACL styles vary: numbered, bracketed, or just paragraph breaks.
-    Heuristic: split on double newlines, then clean very short lines away.
+    Split ACL-style references into individual entries.
+
+    Heuristics:
+    - Normalize line breaks and fix word hyphenation.
+    - Treat it as a stream of lines.
+    - Start a new reference when we've already seen a year in the
+      current reference AND we see a line that looks like the start
+      of a new citation.
+    - Stop when we hit something that looks like an appendix heading
+      (e.g., 'A Haystack texts', 'B Models', or 'Appendix ...').
     """
-    # Normalize hyphenation across line breaks
+    # Normalize newlines and fix hyphenation: "infor-\n mation" -> "information"
     ref_text = ref_text.replace("\r\n", "\n").replace("\r", "\n")
     ref_text = re.sub(r"(\w)-\n(\w)", r"\1\2", ref_text)
-    chunks = [c.strip() for c in re.split(r"\n\s*\n", ref_text) if c.strip()]
-    # Filter out the header paragraph(s)
-    chunks = [c for c in chunks if not re.match(r"^\s*(References|Bibliography)\s*$", c, re.IGNORECASE)]
-    # Some entries get merged; optionally split when line starts like [12] or 12. or (2020) etc.
-    refined = []
-    for c in chunks:
-        parts = re.split(r"\n(?=\[\d+\]\s|^\d+\.\s|^\(\d{4}\)\s)", c, flags=re.MULTILINE)
-        for p in parts:
-            p = re.sub(r"\s+", " ", p).strip()
-            if len(p) > 25:
-                refined.append(p)
-    # Deduplicate near-identical entries
-    uniq = []
-    seen = set()
-    for r in refined:
-        key = r.lower()
-        if key not in seen:
-            uniq.append(r)
-            seen.add(key)
-    return uniq
+
+    lines = [ln.rstrip() for ln in ref_text.split("\n")]
+
+    refs: list[str] = []
+    cur_lines: list[str] = []
+    cur_has_year = False
+
+    # Patterns
+    author_start_re = re.compile(
+        r"^[A-Z][A-Za-zÀ-ÖØ-öø-ÿ'`\-]+(?:\s+[A-Z][A-Za-zÀ-ÖØ-öø-ÿ'`\-\.]+)*,"
+    )
+    year_re = re.compile(r"\b(19|20)\d{2}\b")
+    author_year_re = re.compile(r"^[A-Z][^,]+?\.\s+(19|20)\d{2}\b")
+
+    # Explicit appendix-ish words
+    APPENDIX_WORD_RE = re.compile(
+        r"^\s*(Appendix|Appendices|Supplementary Material)\b",
+        re.IGNORECASE,
+    )
+    # ACL-style appendix headings like "A Haystack texts", "B Models"
+    # single capital letter, then space, then a Capitalized word, no comma/year
+    ACL_APPX_HEAD_RE = re.compile(r"^[A-Z]\s+[A-Z][A-Za-z0-9\-]*(?:\s+[A-Za-z0-9\-]+)*$")
+
+    def looks_like_appendix_heading(s: str) -> bool:
+        s_stripped = s.strip()
+        if APPENDIX_WORD_RE.match(s_stripped):
+            return True
+        if ACL_APPX_HEAD_RE.match(s_stripped):
+            # Heuristic filters: not too long, no obvious year
+            if len(s_stripped) <= 60 and not year_re.search(s_stripped):
+                return True
+        return False
+
+    for ln in lines:
+        s = ln.strip()
+        if not s:
+            continue
+
+        # If we've already accumulated at least one reference and
+        # we hit an appendix-like heading, stop.
+        if refs and looks_like_appendix_heading(s):
+            break
+
+        is_authorish_start = bool(author_start_re.match(s)) or bool(author_year_re.match(s))
+        has_year = bool(year_re.search(s))
+
+        # New reference start:
+        if is_authorish_start and cur_lines and cur_has_year:
+            ref = " ".join(cl.strip() for cl in cur_lines)
+            ref = re.sub(r"\s+", " ", ref).strip()
+            if ref:
+                refs.append(ref)
+            cur_lines = [ln]
+            cur_has_year = has_year
+        else:
+            cur_lines.append(ln)
+            cur_has_year = cur_has_year or has_year
+
+    # Flush the last reference
+    if cur_lines:
+        ref = " ".join(cl.strip() for cl in cur_lines)
+        ref = re.sub(r"\s+", " ", ref).strip()
+        if ref:
+            refs.append(ref)
+
+    # Drop entries that don't contain any year at all (usually non-reference noise).
+    refs = [r for r in refs if year_re.search(r)]
+    return refs
+
 
 # ---------------------------
 # Identifier extraction & resolvers

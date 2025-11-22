@@ -11,6 +11,7 @@ env/
 *.csv
 *.tsv
 *.json
+*.jsonl
 *.log
 *.out
 *.pt  # PyTorch checkpoint files
