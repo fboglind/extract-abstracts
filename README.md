@@ -1,6 +1,6 @@
 # extract-abstracts
 
-## extract_acl_abstracts
+## extract_acl_abstracts.py
 
 A Tool to batch-extract abstracts from ACL-style PDFs (and many similar scholarly PDFs).
 
@@ -44,3 +44,19 @@ Usage:
     --rate_limit 4
 
 
+## abstract_viewer.html
+
+A viewer for outputted .jsonl file from `get_reference_abstracts.py` locally in Firefox. 
+
+Lets you:
+
+    - Load the refs_abstracts.jsonl file via a file picker
+    - Show a summary (how many refs, how many abstracts found)
+    - Browse/search/filter the references
+    - Expand a row to see full abstract + original reference text
+
+Usage:
+    - `firefox abstract-viewer.html`
+    - Click “Load JSONL file” and select .jsonl-file.
+    - Use the Filter box to search titles/abstracts/raw references.
+    - Click any row to expand/collapse full abstract + original reference.
