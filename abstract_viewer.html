@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Reference Abstract Viewer</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      margin: 0;
+      padding: 1rem 2rem;
+      background: #f5f5f5;
+    }
+    h1 {
+      margin-top: 0;
+      font-size: 1.5rem;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .controls label {
+      font-weight: 600;
+    }
+    input[type="file"],
+    input[type="text"] {
+      padding: 0.25rem 0.5rem;
+      font-size: 0.95rem;
+    }
+    .stats {
+      margin: 0.5rem 0 1rem;
+      font-size: 0.9rem;
+    }
+    .table-container {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      max-height: 75vh;
+      overflow: auto;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 0.9rem;
+    }
+    thead {
+      position: sticky;
+      top: 0;
+      background: #fafafa;
+      z-index: 1;
+    }
+    th, td {
+      padding: 0.4rem 0.6rem;
+      border-bottom: 1px solid #eee;
+      vertical-align: top;
+    }
+    th {
+      text-align: left;
+      font-weight: 600;
+    }
+    tr:nth-child(even) td {
+      background: #fcfcfc;
+    }
+    tr:hover td {
+      background: #f0f7ff;
+    }
+    .clickable {
+      cursor: pointer;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.1rem 0.4rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      line-height: 1.4;
+      background: #eee;
+    }
+    .badge-ok   { background: #d2f5d1; }
+    .badge-miss { background: #ffd6d6; }
+    .badge-src  { background: #dbeafe; }
+    .details {
+      padding: 0.6rem 0.6rem 0.8rem;
+      background: #f8fafc;
+      border-top: 1px solid #e5e7eb;
+    }
+    .details h4 {
+      margin: 0 0 0.4rem;
+      font-size: 0.9rem;
+    }
+    .details pre {
+      margin: 0.2rem 0;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 0.8rem;
+      background: #f1f5f9;
+      padding: 0.4rem 0.5rem;
+      border-radius: 4px;
+      overflow-x: auto;
+    }
+    .pill {
+      padding: 0.05rem 0.5rem;
+      border-radius: 999px;
+      border: 1px solid #ddd;
+      font-size: 0.75rem;
+    }
+    .no-data {
+      padding: 1rem;
+      text-align: center;
+      color: #666;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Reference Abstract Viewer</h1>
+
+  <div class="controls">
+    <div>
+      <label for="fileInput">Load JSONL file:</label>
+      <input type="file" id="fileInput" accept=".jsonl,.txt,.json" />
+    </div>
+    <div>
+      <label for="searchInput">Filter:</label>
+      <input type="text" id="searchInput" placeholder="Search in title, abstract, or raw entry…" size="40" />
+    </div>
+  </div>
+
+  <p class="stats" id="stats">No file loaded.</p>
+
+  <div class="table-container" id="tableContainer">
+    <div class="no-data">Load a JSONL file exported by your script to view results.</div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('fileInput');
+    const searchInput = document.getElementById('searchInput');
+    const statsEl = document.getElementById('stats');
+    const tableContainer = document.getElementById('tableContainer');
+
+    let allRecords = [];
+    let filteredRecords = [];
+
+    function parseJSONL(text) {
+      const lines = text.split(/\r?\n/);
+      const records = [];
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+        try {
+          const obj = JSON.parse(trimmed);
+          records.push(obj);
+        } catch (e) {
+          console.warn('Skipping invalid JSONL line:', trimmed.slice(0, 120) + '...');
+        }
+      }
+      return records;
+    }
+
+    function summarize(records) {
+      const total = records.length;
+      const withAbs = records.filter(r => r.abstract && r.abstract.trim().length > 0).length;
+      const withId = records.filter(r => r.src_id).length;
+      statsEl.textContent =
+        `Loaded ${total} references · Resolved IDs: ${withId} · With abstracts: ${withAbs}`;
+    }
+
+    function applyFilter() {
+      const q = searchInput.value.trim().toLowerCase();
+      if (!q) {
+        filteredRecords = allRecords.slice();
+      } else {
+        filteredRecords = allRecords.filter(r => {
+          const hay = [
+            r.title || '',
+            r.abstract || '',
+            r.raw_entry || ''
+          ].join(' ').toLowerCase();
+          return hay.includes(q);
+        });
+      }
+      renderTable();
+    }
+
+    function renderTable() {
+      if (!filteredRecords.length) {
+        tableContainer.innerHTML = '<div class="no-data">No matching references.</div>';
+        return;
+      }
+      const table = document.createElement('table');
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr>
+          <th>#</th>
+          <th>Title</th>
+          <th>Source</th>
+          <th>Abstract (preview)</th>
+          <th>Status</th>
+        </tr>`;
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+
+      filteredRecords.forEach((rec, idx) => {
+        const tr = document.createElement('tr');
+        tr.classList.add('clickable');
+
+        const abs = (rec.abstract || '').trim();
+        const hasAbs = abs.length > 0;
+        const preview = hasAbs ? (abs.length > 220 ? abs.slice(0, 220) + '…' : abs) : '';
+
+        const src = rec.src_id || '';
+        const srcLabel = src ? `<span class="badge badge-src">${src}</span>` : '';
+
+        const status = hasAbs
+          ? '<span class="badge badge-ok">abstract ✓</span>'
+          : '<span class="badge badge-miss">no abstract</span>';
+
+        const title = (rec.title && rec.title.trim()) || '[no title]';
+
+        tr.innerHTML = `
+          <td>${idx + 1}</td>
+          <td>${title}</td>
+          <td>${srcLabel}</td>
+          <td>${preview}</td>
+          <td>${status}</td>
+        `;
+
+        // Details row
+        const detailsTr = document.createElement('tr');
+        const detailsTd = document.createElement('td');
+        detailsTd.colSpan = 5;
+        detailsTd.classList.add('details');
+        detailsTd.style.display = 'none';
+
+        const rawEntry = (rec.raw_entry || '').trim();
+        detailsTd.innerHTML = `
+          <h4>Full abstract</h4>
+          <pre>${hasAbs ? abs : '[no abstract available]'}</pre>
+          <h4>Original reference</h4>
+          <pre>${rawEntry || '[no raw entry]'} </pre>
+        `;
+        detailsTr.appendChild(detailsTd);
+
+        tr.addEventListener('click', () => {
+          const visible = detailsTd.style.display === '';
+          detailsTd.style.display = visible ? 'none' : '';
+        });
+
+        tbody.appendChild(tr);
+        tbody.appendChild(detailsTr);
+      });
+
+      table.appendChild(tbody);
+      tableContainer.innerHTML = '';
+      tableContainer.appendChild(table);
+    }
+
+    fileInput.addEventListener('change', (evt) => {
+      const file = evt.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target.result;
+        allRecords = parseJSONL(text);
+        filteredRecords = allRecords.slice();
+        summarize(allRecords);
+        renderTable();
+      };
+      reader.readAsText(file, 'utf-8');
+    });
+
+    searchInput.addEventListener('input', () => {
+      applyFilter();
+    });
+  </script>
+</body>
+</html>
+
