@@ -11,13 +11,14 @@ A Tool to batch-extract abstracts from ACL-style PDFs (and many similar scholarl
 - Writes CSV and JSONL outputs; can optionally dump first-pages text for debugging.
 
 Usage:
-    'pip install pymupdf tqdm'
-    ´´´python extract_acl_abstracts.py \
-        --input_dir /path/to/pdfs \
-        --out_csv abstracts.csv \
-        --out_jsonl abstracts.jsonl \
-        --dump_txt \
-        --max_pages 2´´´
+
+​     `pip install pymupdf tqdm`
+  `python extract_acl_abstracts.py \
+​        --input_dir /path/to/pdfs \
+​        --out_csv abstracts.csv \
+​        --out_jsonl abstracts.jsonl \
+​        --dump_txt \
+​        --max_pages 2`
 
 
 
@@ -40,11 +41,9 @@ Install:
   pip install pymupdf requests tqdm python-dateutil
 
 Usage:
-´´´
-  python get_reference_abstracts.py --pdf /path/to/seed.pdf \
+  `python get_reference_abstracts.py --pdf /path/to/seed.pdf \
     --out_csv refs_abstracts.csv --out_jsonl refs_abstracts.jsonl \
-    --rate_limit 4
-´´´
+    --rate_limit 4`
 
 ## abstract_viewer.html
 
@@ -59,6 +58,6 @@ Lets you:
 
 Usage:
     - `firefox abstract-viewer.html`
-    - Click “Load JSONL file” and select .jsonl-file.
-    - Use the Filter box to search titles/abstracts/raw references.
-    - Click any row to expand/collapse full abstract + original reference.
+        - Click “Load JSONL file” and select .jsonl-file.
+        - Use the Filter box to search titles/abstracts/raw references.
+        - Click any row to expand/collapse full abstract + original reference.
