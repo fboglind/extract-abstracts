@@ -12,13 +12,14 @@ A Tool to batch-extract abstracts from ACL-style PDFs (and many similar scholarl
 
 Usage:
 
-​     `pip install pymupdf tqdm`
-  `python extract_acl_abstracts.py \
-​        --input_dir /path/to/pdfs \
-​        --out_csv abstracts.csv \
-​        --out_jsonl abstracts.jsonl \
-​        --dump_txt \
-​        --max_pages 2`
+```
+ pip install pymupdf tqdm python extract_acl_abstracts.py \
+ 	--input_dir /path/to/pdfs \
+ 	--out_csv abstracts.csv \
+ 	--out_jsonl abstracts.jsonl \
+ 	--dump_txt \
+ 	--max_pages 2
+```
 
 
 
@@ -41,9 +42,14 @@ Install:
   pip install pymupdf requests tqdm python-dateutil
 
 Usage:
-  `python get_reference_abstracts.py --pdf /path/to/seed.pdf \
-    --out_csv refs_abstracts.csv --out_jsonl refs_abstracts.jsonl \
-    --rate_limit 4`
+
+```
+python get_reference_abstracts.py --pdf /path/to/seed.pdf \
+	--out_csv refs_abstracts.csv --out_jsonl refs_abstracts.jsonl \
+	--rate_limit 4
+```
+
+
 
 ## abstract_viewer.html
 
@@ -51,10 +57,10 @@ A viewer for outputted .jsonl file from `get_reference_abstracts.py` locally in 
 
 Lets you:
 
-    - Load the refs_abstracts.jsonl file via a file picker
-    - Show a summary (how many refs, how many abstracts found)
-    - Browse/search/filter the references
-    - Expand a row to see full abstract + original reference text
+- Load the refs_abstracts.jsonl file via a file picker
+- Show a summary (how many refs, how many abstracts found)
+- Browse/search/filter the references
+- Expand a row to see full abstract + original reference text
 
 Usage:
     - `firefox abstract-viewer.html`
