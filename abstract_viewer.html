@@ -69,6 +69,11 @@
     .clickable {
       cursor: pointer;
     }
+    .title-link {
+      color: inherit;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
     .badge {
       display: inline-block;
       padding: 0.1rem 0.4rem;
@@ -79,7 +84,6 @@
     }
     .badge-ok   { background: #d2f5d1; }
     .badge-miss { background: #ffd6d6; }
-    .badge-src  { background: #dbeafe; }
     .details {
       padding: 0.6rem 0.6rem 0.8rem;
       background: #f8fafc;
@@ -105,6 +109,12 @@
       color: #666;
       font-size: 0.9rem;
     }
+    .hint {
+      color: #666;
+      font-size: 0.85rem;
+      margin-top: -0.5rem;
+      margin-bottom: 0.75rem;
+    }
   </style>
 </head>
 <body>
@@ -116,10 +126,16 @@
       <input type="file" id="fileInput" accept=".jsonl,.txt,.json" />
     </div>
     <div>
+      <label for="pdfDirInput">Load PDF folder:</label>
+      <input type="file" id="pdfDirInput" webkitdirectory multiple />
+    </div>
+    <div>
       <label for="searchInput">Filter:</label>
-      <input type="text" id="searchInput" placeholder="Search in filename, title, abstract…" size="40" />
+      <input type="text" id="searchInput" placeholder="Search in author, title, abstract…" size="40" />
     </div>
   </div>
+
+  <p class="hint">Load the JSONL file and optionally the PDF folder. If the folder is loaded, clicking a title opens the PDF in a new tab.</p>
 
   <p class="stats" id="stats">No file loaded.</p>
 
@@ -129,12 +145,14 @@
 
   <script>
     const fileInput = document.getElementById('fileInput');
+    const pdfDirInput = document.getElementById('pdfDirInput');
     const searchInput = document.getElementById('searchInput');
     const statsEl = document.getElementById('stats');
     const tableContainer = document.getElementById('tableContainer');
 
     let allRecords = [];
     let filteredRecords = [];
+    const pdfFileMap = new Map();
 
     function parseJSONL(text) {
       const lines = text.split(/\r?\n/);
@@ -157,8 +175,33 @@
       const withAbs = records.filter(r => r.abstract && r.abstract.trim().length > 0).length;
       const withDoi = records.filter(r => r.doi && r.doi.trim().length > 0).length;
       const withErrors = records.filter(r => r.error && r.error.trim().length > 0).length;
+      const pdfsLoaded = Array.from(pdfFileMap.values()).filter(v => v instanceof File).length;
       statsEl.textContent =
-        `Loaded ${total} PDFs · With abstracts: ${withAbs} · With DOI: ${withDoi} · Errors: ${withErrors}`;
+        `Loaded ${total} PDFs · With abstracts: ${withAbs} · With DOI: ${withDoi} · Errors: ${withErrors} · PDFs indexed: ${pdfsLoaded}`;
+    }
+
+    function indexPdfFiles(fileList) {
+      pdfFileMap.clear();
+
+      for (const file of fileList) {
+        const name = file.name || '';
+        if (!name.toLowerCase().endsWith('.pdf')) continue;
+        pdfFileMap.set(name, file);
+        if (file.webkitRelativePath) {
+          pdfFileMap.set(file.webkitRelativePath, file);
+        }
+      }
+
+      if (allRecords.length) {
+        summarize(allRecords);
+        renderTable();
+      }
+    }
+
+    function getPdfObjectUrl(filename) {
+      const file = pdfFileMap.get(filename);
+      if (!file) return '';
+      return URL.createObjectURL(file);
     }
 
     function applyFilter() {
@@ -215,6 +258,7 @@
 
         const filename = rec.filename || '';
         const filenameStem = filename.replace(/\.pdf$/i, '');
+        const pdfUrl = getPdfObjectUrl(filename);
 
         const title =
           (rec.title_guess && rec.title_guess.trim()) ||
@@ -236,10 +280,14 @@
           ? `<span class="badge badge-ok">${rec.found_via || 'abstract found'}</span>`
           : `<span class="badge badge-miss">no abstract</span>`;
 
+        const titleHtml = pdfUrl
+          ? `<a class="title-link" href="${pdfUrl}" target="_blank" rel="noopener noreferrer">${title}</a>`
+          : title;
+
         tr.innerHTML = `
           <td>${idx + 1}</td>
           <td>${author}</td>
-          <td>${title}</td>
+          <td>${titleHtml}</td>
           <td>${year}</td>
           <td>${preview}</td>
           <td>${status}</td>
@@ -255,10 +303,13 @@
           <h4>Displayed title</h4>
           <pre>${title}</pre>
 
+          <h4>Open PDF</h4>
+          <pre>${pdfUrl ? `<a href="${pdfUrl}" target="_blank" rel="noopener noreferrer">Open PDF in new tab</a>` : '[PDF not loaded from selected folder]'}</pre>
+
           <h4>Filename metadata</h4>
           <pre>year_from_filename: ${rec.year_from_filename || '[none]'}
-      author_from_filename: ${rec.author_from_filename || '[none]'}
-      title_from_filename: ${rec.title_from_filename || '[none]'}</pre>
+author_from_filename: ${rec.author_from_filename || '[none]'}
+title_from_filename: ${rec.title_from_filename || '[none]'}</pre>
 
           <h4>PDF title guess</h4>
           <pre>${rec.title_guess || '[none]'}</pre>
@@ -281,7 +332,10 @@
 
         detailsTr.appendChild(detailsTd);
 
-        tr.addEventListener('click', () => {
+        tr.addEventListener('click', (evt) => {
+          if (evt.target.closest('a')) {
+            return;
+          }
           const visible = detailsTd.style.display === '';
           detailsTd.style.display = visible ? 'none' : '';
         });
@@ -308,6 +362,12 @@
         renderTable();
       };
       reader.readAsText(file, 'utf-8');
+    });
+
+    pdfDirInput.addEventListener('change', (evt) => {
+      const files = evt.target.files;
+      if (!files || !files.length) return;
+      indexPdfFiles(files);
     });
 
     searchInput.addEventListener('input', () => {
