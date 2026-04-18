@@ -24,6 +24,10 @@ dir_1/
 #pdfs
 *.pdf
 
+#data files
+*.jsonl
+*.csv
+
 # Ignore temp files
 *.un~
 *.swp
