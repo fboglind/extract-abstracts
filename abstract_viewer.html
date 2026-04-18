@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Reference Abstract Viewer</title>
+  <title>Folder PDF Abstract Viewer</title>
   <style>
     body {
       font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -99,12 +99,6 @@
       border-radius: 4px;
       overflow-x: auto;
     }
-    .pill {
-      padding: 0.05rem 0.5rem;
-      border-radius: 999px;
-      border: 1px solid #ddd;
-      font-size: 0.75rem;
-    }
     .no-data {
       padding: 1rem;
       text-align: center;
@@ -114,7 +108,7 @@
   </style>
 </head>
 <body>
-  <h1>Reference Abstract Viewer</h1>
+  <h1>Folder PDF Abstract Viewer</h1>
 
   <div class="controls">
     <div>
@@ -123,14 +117,14 @@
     </div>
     <div>
       <label for="searchInput">Filter:</label>
-      <input type="text" id="searchInput" placeholder="Search in title, abstract, or raw entry…" size="40" />
+      <input type="text" id="searchInput" placeholder="Search in filename, title, abstract…" size="40" />
     </div>
   </div>
 
   <p class="stats" id="stats">No file loaded.</p>
 
   <div class="table-container" id="tableContainer">
-    <div class="no-data">Load a JSONL file exported by your script to view results.</div>
+    <div class="no-data">Load a JSONL file exported by extract_acl_abstracts.py.</div>
   </div>
 
   <script>
@@ -161,9 +155,10 @@
     function summarize(records) {
       const total = records.length;
       const withAbs = records.filter(r => r.abstract && r.abstract.trim().length > 0).length;
-      const withId = records.filter(r => r.src_id).length;
+      const withDoi = records.filter(r => r.doi && r.doi.trim().length > 0).length;
+      const withErrors = records.filter(r => r.error && r.error.trim().length > 0).length;
       statsEl.textContent =
-        `Loaded ${total} references · Resolved IDs: ${withId} · With abstracts: ${withAbs}`;
+        `Loaded ${total} PDFs · With abstracts: ${withAbs} · With DOI: ${withDoi} · Errors: ${withErrors}`;
     }
 
     function applyFilter() {
@@ -173,9 +168,15 @@
       } else {
         filteredRecords = allRecords.filter(r => {
           const hay = [
-            r.title || '',
+            r.filename || '',
+            r.title_guess || '',
+            r.title_from_filename || '',
+            r.author_from_filename || '',
+            r.year_from_filename || '',
             r.abstract || '',
-            r.raw_entry || ''
+            r.found_via || '',
+            r.error || '',
+            r.doi || ''
           ].join(' ').toLowerCase();
           return hay.includes(q);
         });
@@ -185,16 +186,18 @@
 
     function renderTable() {
       if (!filteredRecords.length) {
-        tableContainer.innerHTML = '<div class="no-data">No matching references.</div>';
+        tableContainer.innerHTML = '<div class="no-data">No matching files.</div>';
         return;
       }
+
       const table = document.createElement('table');
       const thead = document.createElement('thead');
       thead.innerHTML = `
         <tr>
           <th>#</th>
+          <th>Author</th>
           <th>Title</th>
-          <th>Source</th>
+          <th>Year</th>
           <th>Abstract (preview)</th>
           <th>Status</th>
         </tr>`;
@@ -210,37 +213,72 @@
         const hasAbs = abs.length > 0;
         const preview = hasAbs ? (abs.length > 220 ? abs.slice(0, 220) + '…' : abs) : '';
 
-        const src = rec.src_id || '';
-        const srcLabel = src ? `<span class="badge badge-src">${src}</span>` : '';
+        const filename = rec.filename || '';
+        const filenameStem = filename.replace(/\.pdf$/i, '');
+
+        const title =
+          (rec.title_guess && rec.title_guess.trim()) ||
+          (rec.title_from_filename && rec.title_from_filename.trim()) ||
+          filenameStem ||
+          '[no title]';
+
+        const author =
+          (rec.author_from_filename && rec.author_from_filename.trim()) ||
+          '[none]';
+
+        const year =
+          (rec.year_from_filename && rec.year_from_filename.trim()) ||
+          '[none]';
+
+        const doi = (rec.doi || '').trim();
 
         const status = hasAbs
-          ? '<span class="badge badge-ok">abstract ✓</span>'
-          : '<span class="badge badge-miss">no abstract</span>';
-
-        const title = (rec.title && rec.title.trim()) || '[no title]';
+          ? `<span class="badge badge-ok">${rec.found_via || 'abstract found'}</span>`
+          : `<span class="badge badge-miss">no abstract</span>`;
 
         tr.innerHTML = `
           <td>${idx + 1}</td>
+          <td>${author}</td>
           <td>${title}</td>
-          <td>${srcLabel}</td>
+          <td>${year}</td>
           <td>${preview}</td>
           <td>${status}</td>
         `;
 
-        // Details row
         const detailsTr = document.createElement('tr');
         const detailsTd = document.createElement('td');
-        detailsTd.colSpan = 5;
+        detailsTd.colSpan = 6;
         detailsTd.classList.add('details');
         detailsTd.style.display = 'none';
 
-        const rawEntry = (rec.raw_entry || '').trim();
         detailsTd.innerHTML = `
+          <h4>Displayed title</h4>
+          <pre>${title}</pre>
+
+          <h4>Filename metadata</h4>
+          <pre>year_from_filename: ${rec.year_from_filename || '[none]'}
+      author_from_filename: ${rec.author_from_filename || '[none]'}
+      title_from_filename: ${rec.title_from_filename || '[none]'}</pre>
+
+          <h4>PDF title guess</h4>
+          <pre>${rec.title_guess || '[none]'}</pre>
+
+          <h4>DOI</h4>
+          <pre>${doi || '[none]'}</pre>
+
           <h4>Full abstract</h4>
           <pre>${hasAbs ? abs : '[no abstract available]'}</pre>
-          <h4>Original reference</h4>
-          <pre>${rawEntry || '[no raw entry]'} </pre>
+
+          <h4>Found via</h4>
+          <pre>${rec.found_via || '[none]'}</pre>
+
+          <h4>Error</h4>
+          <pre>${rec.error || '[none]'}</pre>
+
+          <h4>Filename</h4>
+          <pre>${filename || '[none]'}</pre>
         `;
+
         detailsTr.appendChild(detailsTd);
 
         tr.addEventListener('click', () => {
@@ -278,4 +316,3 @@
   </script>
 </body>
 </html>
-

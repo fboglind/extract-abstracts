@@ -175,7 +175,60 @@ def extract_metadata(text: str) -> dict:
         meta["title_guess"] = title
     return meta
 
-def process_pdf(pdf_path: Path, dump_txt: bool = False, max_pages: int = 2) -> dict:
+def parse_metadata_from_filename(pdf_path: Path) -> dict:
+    """
+    Parse metadata from filenames like:
+    2014_shao_some_long_title_here.pdf
+
+    Returns:
+        {
+            "year_from_filename": "2014" or "",
+            "author_from_filename": "shao" or "",
+            "title_from_filename": "Some Long Title Here" or ""
+        }
+    """
+    stem = pdf_path.stem
+
+    # Match: year_author_title
+    m = re.match(r"^(?P<year>\d{4})_(?P<author>[^_]+)_(?P<title>.+)$", stem)
+    if not m:
+        return {
+            "year_from_filename": "",
+            "author_from_filename": "",
+            "title_from_filename": "",
+        }
+
+    year = m.group("year")
+    author = m.group("author")
+    raw_title = m.group("title")
+
+    # Clean up title
+    title = raw_title.replace("_", " ")
+    title = re.sub(r"\[[^\]]+\]", "", title)   # remove things like [kokkinakis]
+    title = re.sub(r"\s+", " ", title).strip()
+
+    # Simple title casing; keeps original words but makes it nicer for display
+    title_display = title.title()
+
+    return {
+        "year_from_filename": year,
+        "author_from_filename": author,
+        "title_from_filename": title_display,
+    }
+
+def process_pdf(
+    pdf_path: Path,
+    dump_txt: bool = False,
+    max_pages: int = 2,
+    parse_filename_metadata_flag: bool = False,
+    prefer_filename_title: bool = False,
+) -> dict:
+    file_meta = parse_metadata_from_filename(pdf_path) if parse_filename_metadata_flag else {
+        "year_from_filename": "",
+        "author_from_filename": "",
+        "title_from_filename": "",
+    }
+
     try:
         first_pages_text = extract_text_first_pages(pdf_path, max_pages=max_pages)
     except Exception as e:
@@ -185,24 +238,38 @@ def process_pdf(pdf_path: Path, dump_txt: bool = False, max_pages: int = 2) -> d
             "found_via": "error",
             "error": str(e),
             "doi": "",
-            "title_guess": ""
+            "title_guess": file_meta["title_from_filename"] if prefer_filename_title else "",
+            "title_from_filename": file_meta["title_from_filename"],
+            "author_from_filename": file_meta["author_from_filename"],
+            "year_from_filename": file_meta["year_from_filename"],
         }
+
     abstract, reason = find_abstract(first_pages_text)
     meta = extract_metadata(first_pages_text)
+
     if dump_txt:
         txt_out = pdf_path.with_suffix(".firstpages.txt")
         try:
             txt_out.write_text(first_pages_text, encoding="utf-8")
         except Exception:
             pass
+
+    pdf_title_guess = meta.get("title_guess", "")
+    chosen_title = file_meta["title_from_filename"] if prefer_filename_title and file_meta["title_from_filename"] else pdf_title_guess
+
     return {
         "filename": pdf_path.name,
         "abstract": abstract,
         "found_via": reason,
         "error": "",
         "doi": meta.get("doi", ""),
-        "title_guess": meta.get("title_guess", ""),
+        "title_guess": chosen_title,
+        "title_from_filename": file_meta["title_from_filename"],
+        "author_from_filename": file_meta["author_from_filename"],
+        "year_from_filename": file_meta["year_from_filename"],
     }
+
+
 
 def main():
     parser = argparse.ArgumentParser(description="Extract abstracts from ACL-style PDF articles in a folder.")
@@ -211,6 +278,8 @@ def main():
     parser.add_argument("--out_jsonl", default="abstracts.jsonl", help="Path to JSONL output")
     parser.add_argument("--dump_txt", action="store_true", help="Also dump first-pages text next to each PDF (.firstpages.txt)")
     parser.add_argument("--max_pages", type=int, default=2, help="How many first pages to scan (default 2)")
+    parser.add_argument("--parse_filename_metadata", action="store_true", help="Parse year/author/title from filenames like YEAR_AUTHOR_TITLE.pdf")
+    parser.add_argument("--prefer_filename_title", action="store_true", help="Use title parsed from filename instead of PDF title guess when available")
     args = parser.parse_args()
 
     in_dir = Path(args.input_dir)
@@ -224,12 +293,32 @@ def main():
 
     rows = []
     for pdf_path in tqdm(pdfs, desc="Processing PDFs"):
-        row = process_pdf(pdf_path, dump_txt=args.dump_txt, max_pages=args.max_pages)
+        
+        row = process_pdf(
+            pdf_path,
+            dump_txt=args.dump_txt,
+            max_pages=args.max_pages,
+            parse_filename_metadata_flag=args.parse_filename_metadata,
+            prefer_filename_title=args.prefer_filename_title,
+        )
         rows.append(row)
 
     # Write CSV
     with open(args.out_csv, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=["filename", "doi", "title_guess", "abstract", "found_via", "error"])
+        writer = csv.DictWriter(
+            f,
+            fieldnames=[
+                "filename",
+                "year_from_filename",
+                "author_from_filename",
+                "title_from_filename",
+                "doi",
+                "title_guess",
+                "abstract",
+                "found_via",
+                "error",
+            ]
+        )
         writer.writeheader()
         for r in rows:
             writer.writerow(r)
