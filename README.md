@@ -7,9 +7,8 @@ Utilities for extracting abstracts from scholarly PDFs and browsing results loca
 Batch-extracts abstracts from a folder of PDFs.
 
 - scans a folder of `.pdf` files
-- extracts text from the first pages with PyMuPDF
-- detects abstracts
-- guesses metadata using heuristics or parses them from filename
+- extracts text from the first pages with PyMuPDF and detects abstracts
+- guesses metadata using heuristics or parses them from formatted filename
 
 Example:
 
