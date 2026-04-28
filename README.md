@@ -28,21 +28,6 @@ python extract_abstracts.py \
 
 Extracts the references from a seed paper and tries to retrieve abstracts for the cited works.
 
-- detects the References section in a PDF
-- splits ACL-style references with heuristics tailored to two-column papers
-- stops before appendix-like sections
-- tries multiple resolution/fetching strategies:
-  - DOI via Crossref
-  - arXiv
-  - ACL Anthology JSON
-  - Crossref bibliographic search
-  - OpenAlex fallback
-- writes CSV and JSONL
-- prints summary counts such as:
-  - references parsed
-  - resolved works
-  - abstracts fetched
-
 Example:
 
 ```bash
@@ -70,13 +55,6 @@ A local HTML viewer for JSONL output from `extract_abstracts.py`.
 - supports filtering
 - opens the matching PDF in a new tab when the title is clicked
 
-Workflow:
-
-1. Open `abstract_viewer.html` in Firefox.
-2. Load the JSONL file produced by `extract_abstracts.py`.
-3. Load the directory containing the original PDFs.
-4. Click a title to open its PDF.
-
 ## Installation
 
 Create and activate a virtual environment:
@@ -87,27 +65,6 @@ source venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install pymupdf tqdm requests python-dateutil
 ```
-
-## Output formats
-
-### `extract_abstracts.py` JSONL / CSV fields
-
-- `filename`
-- `year_from_filename`
-- `author_from_filename`
-- `title_from_filename`
-- `doi`
-- `title_guess`
-- `abstract`
-- `found_via`
-- `error`
-
-### `get_reference_abstracts.py` JSONL / CSV fields
-
-- `raw_entry`
-- `src_id`
-- `title`
-- `abstract`
 
 ## Quick start
 
