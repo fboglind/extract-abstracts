@@ -1,6 +1,6 @@
 # extract-abstracts
 
-Utilities for extracting abstracts from scholarly PDFs and browsing the results locally in Firefox. Was initially created for ACL-style pdfs, but now works pretty good for other formats as well
+Utilities for extracting abstracts from scholarly PDFs and browsing results locally in Firefox. Was initially created for ACL-style pdfs, but now works pretty good for other formats as well
 
 ### `extract_abstracts.py`
 
@@ -65,7 +65,7 @@ python get_reference_abstracts.py \
   --out_jsonl name-of-paper-refs.jsonl
 ```
 
-### `abstract_viewer_updated.html`
+### `abstract_viewer.html`
 
 A local HTML viewer for JSONL output from `extract_abstracts.py`.
 
@@ -82,11 +82,10 @@ A local HTML viewer for JSONL output from `extract_abstracts.py`.
 - expands rows to show full details
 - supports filtering
 - opens the matching PDF in a new tab when the title is clicked
-- avoids hardcoded absolute paths by indexing PDFs from a selected folder
 
 Workflow:
 
-1. Open `abstract_viewer_updated.html` in Firefox.
+1. Open `abstract_viewer.html` in Firefox.
 2. Load the JSONL file produced by `extract_abstracts.py`.
 3. Load the directory containing the original PDFs.
 4. Click a title to open its PDF.
@@ -100,12 +99,6 @@ python3 -m venv venv
 source venv/bin/activate
 python -m pip install --upgrade pip
 python -m pip install pymupdf tqdm requests python-dateutil
-```
-
-Check that PyMuPDF works:
-
-```bash
-python -c "import fitz; print('PyMuPDF OK')"
 ```
 
 ## Output formats
@@ -129,23 +122,6 @@ python -c "import fitz; print('PyMuPDF OK')"
 - `title`
 - `abstract`
 
-
-
-### Why the viewer needs the PDF folder separately
-
-The HTML viewer does not hardcode a base path. Instead, it indexes the user-selected PDF folder and matches files by filename. This makes the setup more portable across machines and folders.
-
-## Suggested file layout
-
-```text
-project/
-├── extract_abstracts.py
-├── get_reference_abstracts.py
-├── abstract_viewer_updated.html
-├── README.md
-└── venv/
-```
-
 ## Quick start
 
 ### Extract abstracts from a folder
@@ -163,7 +139,7 @@ python extract_abstracts.py \
 
 ### Open results in Firefox
 
-- open `abstract_viewer_updated.html`
+- open `abstract_viewer.html`
 - load `thesis-abstracts.jsonl`
 - load the PDF folder
 - click a title to open the paper
