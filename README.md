@@ -17,24 +17,18 @@ Parsed filename metadata:
 - `author_from_filename`
 - `title_from_filename`
 
-Useful flags:
-
-- `--dump_txt`
-- `--max_pages 2`
-- `--parse_filename_metadata`
-- `--prefer_filename_title`
 
 Example:
 
 ```bash
 python extract_abstracts.py \
-  --input_dir /home/fredrik/Documents/thesis-lit \
-  --out_csv thesis-abstracts.csv \
-  --out_jsonl thesis-abstracts.jsonl \
-  --dump_txt \
-  --max_pages 2 \
-  --parse_filename_metadata \
-  --prefer_filename_title
+  --input_dir /home/fredrik/Documents/thesis-lit \  # Extract abstracts from pdf articles in this folder
+  --out_csv thesis-abstracts.csv \                  # Path to CSV output
+  --out_jsonl thesis-abstracts.jsonl \              # Path to JSONL output
+  --dump_txt \                                      # Dumps first-pages text next to each PDF
+  --max_pages 2 \                                   # How many first pages to scan (default 2)
+  --parse_filename_metadata \                       # Parse year/author/title from custom filename format: YEAR_AUTHOR_TITLE.pdf
+  --prefer_filename_title                           # Use title parsed from filename instead of PDF title guess when available
 ```
 
 ### `get_reference_abstracts.py`
