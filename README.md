@@ -1,69 +1,189 @@
 # extract-abstracts
 
-## extract_acl_abstracts.py
+Utilities for extracting abstracts from scholarly PDFs and browsing the results locally in Firefox. Was initially created for ACL-style pdfs, but now works pretty good for other formats as well
 
-A Tool to batch-extract abstracts from ACL-style PDFs (and many similar scholarly PDFs).
+### `extract_acl_abstracts.py`
 
-- Looks for "Abstract" on page 1–2 (configurable with --max_pages).
-- Supports "Abstract" as a header on its own line and inline forms ("Abstract. We ...").
-- Stops at common section starts like "1 Introduction", "Keywords", "CCS Concepts", etc.
-- Captures DOI if present and makes a rough title guess.
-- Writes CSV and JSONL outputs; can optionally dump first-pages text for debugging.
+Batch-extracts abstracts from a folder of PDFs.
 
-Usage:
+Features:
 
-```
- pip install pymupdf tqdm python extract_acl_abstracts.py \
- 	--input_dir /path/to/pdfs \
- 	--out_csv abstracts.csv \
- 	--out_jsonl abstracts.jsonl \
- 	--dump_txt \
- 	--max_pages 2
-```
+- scans a folder of `.pdf` files
+- extracts text from the first pages with PyMuPDF
+- detects abstracts using ACL-friendly heuristics
+- writes results to both CSV and JSONL
+- can dump normalized first-page text to `.firstpages.txt`
+- can parse metadata from filenames
+- can prefer title metadata from filenames over noisy PDF title guesses
 
+Supported filename convention:
 
+- `YEAR_AUTHOR_TITLE.pdf`
+- example: `2014_shao_what_do_verbal_fluency_tasks_measure_predictors_of_verbal_fluency_performance_in_older_adults.pdf`
 
-## get_reference_abstracts.py
+Parsed filename metadata:
 
-Given a seed PDF (e.g., an ACL paper), extract its References section, resolve each
-citation to an identifier (DOI / arXiv / ACL Anthology), then fetch abstracts from:
-  1) Crossref (DOI)
-  2) arXiv (id)
-  3) ACL Anthology JSON (id)
-  4) Crossref bibliographic search (if no id)
-  5) OpenAlex search (fallback or to reconstruct abstract text)
+- `year_from_filename`
+- `author_from_filename`
+- `title_from_filename`
 
-Outputs CSV + JSONL and prints a summary:
-  - total references parsed
-  - works resolved (got an ID)
-  - abstracts retrieved
+Useful flags:
 
-Install:
-  pip install pymupdf requests tqdm python-dateutil
+- `--dump_txt`
+- `--max_pages 2`
+- `--parse_filename_metadata`
+- `--prefer_filename_title`
 
-Usage:
+Example:
 
-```
-python get_reference_abstracts.py --pdf /path/to/seed.pdf \
-	--out_csv refs_abstracts.csv --out_jsonl refs_abstracts.jsonl \
-	--rate_limit 4
+```bash
+python extract_acl_abstracts.py \
+  --input_dir /home/fredrik/Documents/thesis-lit \
+  --out_csv thesis-abstracts.csv \
+  --out_jsonl thesis-abstracts.jsonl \
+  --dump_txt \
+  --max_pages 2 \
+  --parse_filename_metadata \
+  --prefer_filename_title
 ```
 
+### `get_reference_abstracts.py`
+
+Extracts the references from a seed paper and tries to retrieve abstracts for the cited works.
+
+- detects the References section in a PDF
+- splits ACL-style references with heuristics tailored to two-column papers
+- stops before appendix-like sections
+- tries multiple resolution/fetching strategies:
+  - DOI via Crossref
+  - arXiv
+  - ACL Anthology JSON
+  - Crossref bibliographic search
+  - OpenAlex fallback
+- writes CSV and JSONL
+- prints summary counts such as:
+  - references parsed
+  - resolved works
+  - abstracts fetched
+
+Example:
+
+```bash
+python get_reference_abstracts.py \
+  --pdf 2025.emnlp-main.1742.pdf \
+  --out_csv needles_refs.csv \
+  --out_jsonl needles_refs.jsonl
+```
+
+### `abstract_viewer_updated.html`
+
+A local HTML viewer for JSONL output from `extract_acl_abstracts.py`.
+
+- opens locally in Firefox
+- loads JSONL through a file picker
+- loads the PDF directory through a directory picker
+- shows a compact table with:
+  - index
+  - author
+  - title
+  - year
+  - abstract preview
+  - status
+- expands rows to show full details
+- supports filtering
+- opens the matching PDF in a new tab when the title is clicked
+- avoids hardcoded absolute paths by indexing PDFs from a selected folder
+
+Workflow:
+
+1. Open `abstract_viewer_updated.html` in Firefox.
+2. Load the JSONL file produced by `extract_acl_abstracts.py`.
+3. Load the directory containing the original PDFs.
+4. Click a title to open its PDF.
+
+## Installation
+
+Create and activate a virtual environment:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install pymupdf tqdm requests python-dateutil
+```
+
+Check that PyMuPDF works:
+
+```bash
+python -c "import fitz; print('PyMuPDF OK')"
+```
+
+## Output formats
+
+### `extract_acl_abstracts.py` JSONL / CSV fields
+
+- `filename`
+- `year_from_filename`
+- `author_from_filename`
+- `title_from_filename`
+- `doi`
+- `title_guess`
+- `abstract`
+- `found_via`
+- `error`
+
+### `get_reference_abstracts.py` JSONL / CSV fields
+
+- `raw_entry`
+- `src_id`
+- `title`
+- `abstract`
 
 
-## abstract_viewer.html
 
-A viewer for outputted .jsonl file from `get_reference_abstracts.py` locally in Firefox. 
+### Why the viewer needs the PDF folder separately
 
-Lets you:
+The HTML viewer does not hardcode a base path. Instead, it indexes the user-selected PDF folder and matches files by filename. This makes the setup more portable across machines and folders.
 
-- Load the refs_abstracts.jsonl file via a file picker
-- Show a summary (how many refs, how many abstracts found)
-- Browse/search/filter the references
-- Expand a row to see full abstract + original reference text
+## Suggested file layout
 
-Usage:
-    - `firefox abstract-viewer.html`
-        - Click “Load JSONL file” and select .jsonl-file.
-        - Use the Filter box to search titles/abstracts/raw references.
-        - Click any row to expand/collapse full abstract + original reference.
+```text
+project/
+├── extract_acl_abstracts.py
+├── get_reference_abstracts.py
+├── abstract_viewer_updated.html
+├── README.md
+└── venv/
+```
+
+## Quick start
+
+### Extract abstracts from a folder
+
+```bash
+python extract_acl_abstracts.py \
+  --input_dir /home/dirname/Documents/pdfs \
+  --out_csv abstracts.csv \
+  --out_jsonl abstracts.jsonl \
+  --dump_txt \
+  --max_pages 2 \
+  --parse_filename_metadata \
+  --prefer_filename_title
+```
+
+### Open results in Firefox
+
+- open `abstract_viewer_updated.html`
+- load `thesis-abstracts.jsonl`
+- load the PDF folder
+- click a title to open the paper
+
+### Extract abstracts of cited references from one paper
+
+```bash
+python get_reference_abstracts.py \
+  --pdf name-of-paper.pdf \
+  --out_csv name-of-paper_refs.csv \
+  --out_jsonl name-of-paper_refs.jsonl
+```
+
