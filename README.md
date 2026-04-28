@@ -6,20 +6,10 @@ Utilities for extracting abstracts from scholarly PDFs and browsing the results 
 
 Batch-extracts abstracts from a folder of PDFs.
 
-Features:
-
 - scans a folder of `.pdf` files
 - extracts text from the first pages with PyMuPDF
-- detects abstracts using ACL-friendly heuristics
-- writes results to both CSV and JSONL
-- can dump normalized first-page text to `.firstpages.txt`
-- can parse metadata from filenames
-- can prefer title metadata from filenames over noisy PDF title guesses
-
-Supported filename convention:
-
-- `YEAR_AUTHOR_TITLE.pdf`
-- example: `2014_shao_what_do_verbal_fluency_tasks_measure_predictors_of_verbal_fluency_performance_in_older_adults.pdf`
+- detects abstracts
+- guesses metadata using heuristics or can be set to parse them from filename convention: `YEAR_AUTHOR_TITLE.pdf`
 
 Parsed filename metadata:
 
