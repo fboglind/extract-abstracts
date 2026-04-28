@@ -39,21 +39,7 @@ python get_reference_abstracts.py \
 
 ### `abstract_viewer.html`
 
-A local HTML viewer for JSONL output from `extract_abstracts.py`.
-
-- opens locally in Firefox
-- loads JSONL through a file picker
-- loads the PDF directory through a directory picker
-- shows a compact table with:
-  - index
-  - author
-  - title
-  - year
-  - abstract preview
-  - status
-- expands rows to show full details
-- supports filtering
-- opens the matching PDF in a new tab when the title is clicked
+A local HTML viewer for JSONL output from `extract_abstracts.py`, opens locally in Firefox, loads JSONL and PDF dir through a file picker, shows a compact table and  expands rows to show full details, supports filtering, opens the matching PDF in a new tab when the title is clicked
 
 ## Installation
 
