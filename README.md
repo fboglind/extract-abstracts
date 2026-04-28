@@ -60,9 +60,9 @@ Example:
 
 ```bash
 python get_reference_abstracts.py \
-  --pdf 2025.emnlp-main.1742.pdf \
-  --out_csv needles_refs.csv \
-  --out_jsonl needles_refs.jsonl
+  --pdf name-of-paper.pdf \
+  --out_csv name-of-paper-refs.csv \
+  --out_jsonl name-of-paper-refs.jsonl
 ```
 
 ### `abstract_viewer_updated.html`
@@ -173,7 +173,7 @@ python extract_abstracts.py \
 ```bash
 python get_reference_abstracts.py \
   --pdf name-of-paper.pdf \
-  --out_csv name-of-paper_refs.csv \
-  --out_jsonl name-of-paper_refs.jsonl
+  --out_csv name-of-paper-refs.csv \
+  --out_jsonl name-of-paper-refs.jsonl
 ```
 
