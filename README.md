@@ -9,7 +9,7 @@ Batch-extracts abstracts from a folder of PDFs.
 - scans a folder of `.pdf` files
 - extracts text from the first pages with PyMuPDF
 - detects abstracts
-- guesses metadata using heuristics or can be set to parse them from filename convention: `YEAR_AUTHOR_TITLE.pdf`
+- guesses metadata using heuristics or parses them from filename
 
 Example:
 
@@ -39,7 +39,10 @@ python get_reference_abstracts.py \
 
 ### `abstract_viewer.html`
 
-A local HTML viewer for JSONL output from `extract_abstracts.py`, opens locally in Firefox, loads JSONL and PDF dir through a file picker, shows a compact table and  expands rows to show full details, supports filtering, opens the matching PDF in a new tab when the title is clicked
+Local HTML viewer for JSONL output from `extract_abstracts.py`
+- compact table/expands rows with details
+- supports filtering
+- opens PDF in a new tab when clicking title
 
 ## Installation
 
