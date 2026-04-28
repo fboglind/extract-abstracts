@@ -2,7 +2,7 @@
 
 Utilities for extracting abstracts from scholarly PDFs and browsing the results locally in Firefox. Was initially created for ACL-style pdfs, but now works pretty good for other formats as well
 
-### `extract_acl_abstracts.py`
+### `extract_abstracts.py`
 
 Batch-extracts abstracts from a folder of PDFs.
 
@@ -37,7 +37,7 @@ Useful flags:
 Example:
 
 ```bash
-python extract_acl_abstracts.py \
+python extract_abstracts.py \
   --input_dir /home/fredrik/Documents/thesis-lit \
   --out_csv thesis-abstracts.csv \
   --out_jsonl thesis-abstracts.jsonl \
@@ -77,7 +77,7 @@ python get_reference_abstracts.py \
 
 ### `abstract_viewer_updated.html`
 
-A local HTML viewer for JSONL output from `extract_acl_abstracts.py`.
+A local HTML viewer for JSONL output from `extract_abstracts.py`.
 
 - opens locally in Firefox
 - loads JSONL through a file picker
@@ -97,7 +97,7 @@ A local HTML viewer for JSONL output from `extract_acl_abstracts.py`.
 Workflow:
 
 1. Open `abstract_viewer_updated.html` in Firefox.
-2. Load the JSONL file produced by `extract_acl_abstracts.py`.
+2. Load the JSONL file produced by `extract_abstracts.py`.
 3. Load the directory containing the original PDFs.
 4. Click a title to open its PDF.
 
@@ -120,7 +120,7 @@ python -c "import fitz; print('PyMuPDF OK')"
 
 ## Output formats
 
-### `extract_acl_abstracts.py` JSONL / CSV fields
+### `extract_abstracts.py` JSONL / CSV fields
 
 - `filename`
 - `year_from_filename`
@@ -149,7 +149,7 @@ The HTML viewer does not hardcode a base path. Instead, it indexes the user-sele
 
 ```text
 project/
-├── extract_acl_abstracts.py
+├── extract_abstracts.py
 ├── get_reference_abstracts.py
 ├── abstract_viewer_updated.html
 ├── README.md
@@ -161,7 +161,7 @@ project/
 ### Extract abstracts from a folder
 
 ```bash
-python extract_acl_abstracts.py \
+python extract_abstracts.py \
   --input_dir /home/dirname/Documents/pdfs \
   --out_csv abstracts.csv \
   --out_jsonl abstracts.jsonl \
