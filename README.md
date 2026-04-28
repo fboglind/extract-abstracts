@@ -11,13 +11,6 @@ Batch-extracts abstracts from a folder of PDFs.
 - detects abstracts
 - guesses metadata using heuristics or can be set to parse them from filename convention: `YEAR_AUTHOR_TITLE.pdf`
 
-Parsed filename metadata:
-
-- `year_from_filename`
-- `author_from_filename`
-- `title_from_filename`
-
-
 Example:
 
 ```bash
