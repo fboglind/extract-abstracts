@@ -42,7 +42,7 @@ python get_reference_abstracts.py \
 Local HTML viewer for JSONL output from `extract_abstracts.py`
 - compact table/expands rows with details
 - supports filtering
-- opens PDF in a new tab when clicking title
+- open `abstract_viewer.html` -> load `abstracts.jsonl` -> load PDF folder -> click title to open pdf
 
 ## Installation
 
@@ -55,34 +55,4 @@ python -m pip install --upgrade pip
 python -m pip install pymupdf tqdm requests python-dateutil
 ```
 
-## Quick start
-
-### Extract abstracts from a folder
-
-```bash
-python extract_abstracts.py \
-  --input_dir /home/dirname/Documents/pdfs \
-  --out_csv abstracts.csv \
-  --out_jsonl abstracts.jsonl \
-  --dump_txt \
-  --max_pages 2 \
-  --parse_filename_metadata \
-  --prefer_filename_title
-```
-
-### Open results in Firefox
-
-- open `abstract_viewer.html`
-- load `thesis-abstracts.jsonl`
-- load the PDF folder
-- click a title to open the paper
-
-### Extract abstracts of cited references from one paper
-
-```bash
-python get_reference_abstracts.py \
-  --pdf name-of-paper.pdf \
-  --out_csv name-of-paper-refs.csv \
-  --out_jsonl name-of-paper-refs.jsonl
-```
 
